@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Uni-Kit</title>
+<meta name="theme-color" content="#0b0b0b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <h1 class="site-title">MY UNI-KIT</h1>
+    <p class="site-subtitle">Manchester United kit collection &middot; 1992&ndash;present</p>
+  </div>
+  <div class="stats-bar" id="statsBar"></div>
+</header>
+
+<main>
+  <section class="filter-bar" id="filterBar">
+    <div class="filter-group">
+      <label for="searchInput">Search</label>
+      <input type="text" id="searchInput" placeholder="Season, player, sponsor...">
+    </div>
+    <div class="filter-group">
+      <label for="brandFilter">Brand</label>
+      <select id="brandFilter"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="sponsorFilter">Sponsor</label>
+      <select id="sponsorFilter"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="managerFilter">Manager</label>
+      <select id="managerFilter"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="trophyFilter">Trophy</label>
+      <select id="trophyFilter"><option value="">All</option></select>
+    </div>
+    <div class="filter-group">
+      <label for="kitTypeFilter">Type</label>
+      <select id="kitTypeFilter">
+        <option value="">All</option>
+        <option value="home">Home</option>
+        <option value="away">Away</option>
+        <option value="third">Third</option>
+      </select>
+    </div>
+    <div class="filter-group filter-toggle">
+      <label class="checkbox-label">
+        <input type="checkbox" id="ownedOnly">
+        <span>Owned only</span>
+      </label>
+    </div>
+    <button class="btn-clear" id="clearFilters">Clear</button>
+  </section>
+
+  <p class="results-count" id="resultsCount"></p>
+
+  <section class="kit-grid" id="kitGrid"></section>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="seasonModal">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-actions">
+    <button id="exportBtn" class="btn-footer">Export collection</button>
+    <label class="btn-footer" for="importInput">Import collection</label>
+    <input type="file" id="importInput" accept="application/json" hidden>
+  </div>
+  <p class="footer-note">All data stored locally in this browser. Free forever. No account needed.</p>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
