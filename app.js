@@ -1,6 +1,15 @@
 (function () {
   "use strict";
 
+  // A URL of the form ...?readonly=1 renders the app with every editing
+  // control (owned toggle, image replace/reset, team photo upload, import)
+  // removed, so the link is safe to share for viewing only. Note this is a
+  // UI convenience, not a security boundary: all collection data already
+  // lives only in each visitor's own browser (localStorage/IndexedDB), so a
+  // normal (non-readonly) link can never let a viewer change what's stored
+  // on the owner's device either way.
+  var READONLY = new URLSearchParams(window.location.search).get("readonly") === "1";
+
   // ================= Collection ownership (localStorage) =================
 
   var STORAGE_KEY = "uniKitCollectionOverrides.v1";
@@ -371,13 +380,17 @@
           (override ? '<span class="custom-badge">Custom</span>' : '') +
         '</div>' +
         '<p class="kit-thumb-meta">' + escapeHTML(kit.brand) + '<br><span class="sponsor">' + escapeHTML(kit.sponsor || "No sponsor") + '</span></p>' +
-        '<div class="kit-thumb-imgactions">' +
-          '<label class="btn-mini">Replace<input type="file" accept="image/*" class="kit-image-input" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '" hidden></label>' +
-          (override ? '<button class="btn-mini btn-remove-kit-image" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '">Reset</button>' : '') +
-        '</div>' +
-        '<button class="owned-toggle' + (owned ? ' is-owned' : '') + '" data-kit-type="' + kit.kitType + '" data-start-year="' + season.startYear + '">' +
-          (owned ? "In collection" : "Mark as owned") +
-        '</button>' +
+        (READONLY ? '' :
+          '<div class="kit-thumb-imgactions">' +
+            '<label class="btn-mini">Replace<input type="file" accept="image/*" class="kit-image-input" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '" hidden></label>' +
+            (override ? '<button class="btn-mini btn-remove-kit-image" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '">Reset</button>' : '') +
+          '</div>'
+        ) +
+        (READONLY ? '' :
+          '<button class="owned-toggle' + (owned ? ' is-owned' : '') + '" data-kit-type="' + kit.kitType + '" data-start-year="' + season.startYear + '">' +
+            (owned ? "In collection" : "Mark as owned") +
+          '</button>'
+        ) +
       '</div>'
     );
   }
@@ -390,12 +403,17 @@
       return (
         '<div class="team-photo-box has-photo" data-start-year="' + season.startYear + '">' +
           '<img src="' + entry.url + '" alt="' + escapeHTML(season.label) + ' team photo" class="team-photo-img" data-lightbox="1" data-src="' + entry.url + '" data-caption="' + escapeHTML(season.label) + ' team photo">' +
-          '<div class="team-photo-actions">' +
-            '<label class="btn-mini">Replace<input type="file" accept="image/*" class="team-photo-input" data-start-year="' + season.startYear + '" hidden></label>' +
-            '<button class="btn-mini btn-remove-photo" data-start-year="' + season.startYear + '">Remove</button>' +
-          '</div>' +
+          (READONLY ? '' :
+            '<div class="team-photo-actions">' +
+              '<label class="btn-mini">Replace<input type="file" accept="image/*" class="team-photo-input" data-start-year="' + season.startYear + '" hidden></label>' +
+              '<button class="btn-mini btn-remove-photo" data-start-year="' + season.startYear + '">Remove</button>' +
+            '</div>'
+          ) +
         '</div>'
       );
+    }
+    if (READONLY) {
+      return '<div class="team-photo-box empty"><span class="no-photo-label">No team photo</span></div>';
     }
     return (
       '<div class="team-photo-box empty" data-start-year="' + season.startYear + '">' +
@@ -690,6 +708,32 @@
     reader.readAsText(file);
     e.target.value = "";
   });
+
+  // ================= Read-only mode UI =================
+
+  if (READONLY) {
+    document.getElementById("readonlyBanner").hidden = false;
+    document.getElementById("footerActions").hidden = true;
+    document.getElementById("footerNote").textContent = "You're viewing a read-only shared collection. Nothing here can be changed from this link.";
+  } else {
+    document.getElementById("copyReadonlyBtn").addEventListener("click", function () {
+      var url = new URL(window.location.href);
+      url.search = "?readonly=1";
+      url.hash = "";
+      var link = url.toString();
+      var btn = document.getElementById("copyReadonlyBtn");
+      var resetLabel = function () { btn.textContent = "Copy read-only link"; };
+      function fallbackPrompt() { window.prompt("Copy this read-only link:", link); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(function () {
+          btn.textContent = "Link copied!";
+          setTimeout(resetLabel, 2000);
+        }).catch(fallbackPrompt);
+      } else {
+        fallbackPrompt();
+      }
+    });
+  }
 
   // ================= Init =================
 

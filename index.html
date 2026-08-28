@@ -18,6 +18,7 @@
     <p class="site-subtitle">Manchester United kit collection &middot; 1992&ndash;present</p>
   </div>
   <div class="stats-bar" id="statsBar"></div>
+  <div class="readonly-banner" id="readonlyBanner" hidden>Read-only shared view &mdash; editing is disabled</div>
 </header>
 
 <section class="filter-bar" id="filterBar">
@@ -74,12 +75,13 @@
 </div>
 
 <footer class="site-footer">
-  <div class="footer-actions">
+  <div class="footer-actions" id="footerActions">
     <button id="exportBtn" class="btn-footer">Export collection</button>
     <label class="btn-footer" for="importInput">Import collection</label>
     <input type="file" id="importInput" accept="application/json" hidden>
+    <button id="copyReadonlyBtn" class="btn-footer">Copy read-only link</button>
   </div>
-  <p class="footer-note">All data (including uploaded team photos) is stored locally in this browser. Free forever. No account needed.</p>
+  <p class="footer-note" id="footerNote">All data (including uploaded team photos) is stored locally in this browser. Free forever. No account needed.</p>
 </footer>
 
 <script src="data.js"></script>

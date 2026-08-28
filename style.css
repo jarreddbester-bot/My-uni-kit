@@ -83,6 +83,20 @@ h1, h2, h3, .display-font {
   letter-spacing: 0.08em;
 }
 
+.readonly-banner {
+  margin: 16px auto 0;
+  max-width: 420px;
+  background: rgba(218, 2, 14, 0.12);
+  border: 1px solid var(--red);
+  color: var(--white);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  border-radius: 20px;
+  text-align: center;
+}
+
 /* ---------- Filter bar ---------- */
 
 .filter-bar {
@@ -317,6 +331,18 @@ h1, h2, h3, .display-font {
 }
 
 .upload-prompt:hover { color: var(--white); }
+
+.no-photo-label {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grey);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
 .upload-icon {
   font-family: 'Anton', sans-serif;
