@@ -430,10 +430,6 @@
         '</div>' +
 
         '<div class="season-body">' +
-          '<div class="team-photo-panel">' +
-            '<h3 class="panel-label">Team Photo</h3>' +
-            teamPhotoHTML(season) +
-          '</div>' +
           '<div class="kits-panel">' +
             '<h3 class="panel-label">Kits</h3>' +
             kitsHTML +
@@ -442,10 +438,12 @@
 
         '<div class="season-squad">' +
           '<button class="squad-toggle" data-start-year="' + season.startYear + '" aria-expanded="false">' +
-            '<span class="squad-toggle-label">Show Starting XI &amp; Full Squad</span>' +
+            '<span class="squad-toggle-label">Show Team Photo, Starting XI &amp; Full Squad</span>' +
             '<span class="squad-toggle-icon">&#9662;</span>' +
           '</button>' +
           '<div class="squad-collapsible" hidden>' +
+            '<h3 class="panel-label">Team Photo</h3>' +
+            teamPhotoHTML(season) +
             '<h3 class="panel-label">Starting XI</h3>' +
             pitchHTML(season) +
             '<h3 class="panel-label">Full Squad</h3>' +
@@ -495,12 +493,12 @@
         if (isHidden) {
           panel.removeAttribute("hidden");
           btn.setAttribute("aria-expanded", "true");
-          btn.querySelector(".squad-toggle-label").textContent = "Hide Starting XI & Full Squad";
+          btn.querySelector(".squad-toggle-label").textContent = "Hide Team Photo, Starting XI & Full Squad";
           btn.querySelector(".squad-toggle-icon").innerHTML = "&#9652;";
         } else {
           panel.setAttribute("hidden", "");
           btn.setAttribute("aria-expanded", "false");
-          btn.querySelector(".squad-toggle-label").textContent = "Show Starting XI & Full Squad";
+          btn.querySelector(".squad-toggle-label").textContent = "Show Team Photo, Starting XI & Full Squad";
           btn.querySelector(".squad-toggle-icon").innerHTML = "&#9662;";
         }
       });

@@ -246,14 +246,7 @@ h1, h2, h3, .display-font {
 }
 
 .season-body {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
   margin-bottom: 22px;
-}
-
-@media (min-width: 760px) {
-  .season-body { grid-template-columns: 260px 1fr; }
 }
 
 /* ---------- Team photo ---------- */
@@ -265,6 +258,8 @@ h1, h2, h3, .display-font {
   border: 1px dashed var(--grey-line);
   background: var(--black-3);
   aspect-ratio: 4 / 3;
+  max-width: 340px;
+  margin: 0 auto 24px;
 }
 
 .team-photo-box.has-photo { border-style: solid; }
