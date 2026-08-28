@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-kit-v3";
+const CACHE_NAME = "uni-kit-v4";
 const PRECACHE_FILES = [
   "./",
   "index.html",
@@ -140,8 +140,30 @@ self.addEventListener("activate", function (event) {
   );
 });
 
+// App-shell files can change on every deploy, so they must be checked against
+// the network first (falling back to cache only when offline). Images/fonts/
+// icons never change once bundled, so those stay cache-first for speed and
+// full offline availability.
+var APP_SHELL_RE = /(\/|index\.html|app\.js|style\.css|data\.js|manifest\.json)$/;
+
 self.addEventListener("fetch", function (event) {
   if (event.request.method !== "GET") return;
+  var url = new URL(event.request.url);
+  var isAppShell = APP_SHELL_RE.test(url.pathname);
+
+  if (isAppShell) {
+    event.respondWith(
+      fetch(event.request).then(function (response) {
+        var copy = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
+        return response;
+      }).catch(function () {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(function (cached) {
       if (cached) return cached;
