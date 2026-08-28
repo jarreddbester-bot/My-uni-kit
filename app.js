@@ -247,6 +247,20 @@
 
   // ================= Formation pitch =================
 
+  // The dataset has no per-player left/right formation slot (formationPosition
+  // is null for every squad row), so there's no ground truth for which side
+  // of the pitch someone lined up on. As a best-effort approximation, classic
+  // English squad numbers reliably imply a side for wide positions (2=RB,
+  // 3=LB, 7=RW, 11=LW); every other number is treated as central and falls
+  // back to shirt-number order. This is a heuristic, not a historical record:
+  // it improves the many seasons that roughly followed the convention (most
+  // of the 1990s-2000s) and is neutral (no worse than before) for modern
+  // squads with arbitrary numbering.
+  var SIDE_HINT = { 2: 1, 3: -1, 7: 1, 11: -1 };
+  function sideHint(shirtNumber) {
+    return SIDE_HINT[shirtNumber] || 0;
+  }
+
   function buildFormationLayout(season) {
     var starters = (season.squad || []).filter(function (p) { return p.isStartingXI; });
 
@@ -262,6 +276,8 @@
     starters.forEach(function (p) { byCat[cat(p.position)].push(p); });
     ["GK", "DEF", "MID", "FWD"].forEach(function (c) {
       byCat[c].sort(function (a, b) {
+        var as = sideHint(a.shirtNumber), bs = sideHint(b.shirtNumber);
+        if (as !== bs) return as - bs;
         var an = a.shirtNumber == null ? 999 : a.shirtNumber;
         var bn = b.shirtNumber == null ? 999 : b.shirtNumber;
         return an - bn;
