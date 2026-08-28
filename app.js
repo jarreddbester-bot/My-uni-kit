@@ -284,14 +284,29 @@
     return layout;
   }
 
+  // Places `count` players centered within a virtual row of `maxCount` evenly
+  // spaced slots, so a narrower row (e.g. 2 forwards) lines up above the
+  // inner/central players of a wider row below it (e.g. 4 midfielders)
+  // instead of spreading out to the full pitch width.
+  function computeXPositions(count, maxCount) {
+    if (count === 0) return [];
+    if (maxCount <= 1) return new Array(count).fill(50);
+    var startSlot = (maxCount - count) / 2;
+    var xs = [];
+    for (var i = 0; i < count; i++) {
+      xs.push(12 + (startSlot + i) * (76 / (maxCount - 1)));
+    }
+    return xs;
+  }
+
   function pitchHTML(season) {
     var layout = buildFormationLayout(season);
+    var maxCount = layout.reduce(function (m, row) { return Math.max(m, row.players.length); }, 1);
     var html = '<div class="pitch-wrap">';
     layout.forEach(function (row) {
-      var count = row.players.length;
-      if (count === 0) return;
+      var xs = computeXPositions(row.players.length, maxCount);
       row.players.forEach(function (p, idx) {
-        var x = count === 1 ? 50 : 12 + (idx * (76 / (count - 1)));
+        var x = xs[idx];
         var num = p.shirtNumber != null ? p.shirtNumber : "-";
         html += '<div class="pitch-player" style="top:' + row.y + '%; left:' + x + '%;">' +
                   '<div class="pitch-jersey">' + num + '</div>' +
@@ -426,10 +441,16 @@
         '</div>' +
 
         '<div class="season-squad">' +
-          '<h3 class="panel-label">Starting XI</h3>' +
-          pitchHTML(season) +
-          '<h3 class="panel-label">Full Squad</h3>' +
-          squadListHTML(season) +
+          '<button class="squad-toggle" data-start-year="' + season.startYear + '" aria-expanded="false">' +
+            '<span class="squad-toggle-label">Show Starting XI &amp; Full Squad</span>' +
+            '<span class="squad-toggle-icon">&#9662;</span>' +
+          '</button>' +
+          '<div class="squad-collapsible" hidden>' +
+            '<h3 class="panel-label">Starting XI</h3>' +
+            pitchHTML(season) +
+            '<h3 class="panel-label">Full Squad</h3>' +
+            squadListHTML(season) +
+          '</div>' +
         '</div>' +
       '</section>'
     );
@@ -467,6 +488,24 @@
   }
 
   function wireSection(root) {
+    Array.from(root.querySelectorAll(".squad-toggle")).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var panel = btn.nextElementSibling;
+        var isHidden = panel.hasAttribute("hidden");
+        if (isHidden) {
+          panel.removeAttribute("hidden");
+          btn.setAttribute("aria-expanded", "true");
+          btn.querySelector(".squad-toggle-label").textContent = "Hide Starting XI & Full Squad";
+          btn.querySelector(".squad-toggle-icon").innerHTML = "&#9652;";
+        } else {
+          panel.setAttribute("hidden", "");
+          btn.setAttribute("aria-expanded", "false");
+          btn.querySelector(".squad-toggle-label").textContent = "Show Starting XI & Full Squad";
+          btn.querySelector(".squad-toggle-icon").innerHTML = "&#9662;";
+        }
+      });
+    });
+
     Array.from(root.querySelectorAll(".owned-toggle")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var kitType = btn.getAttribute("data-kit-type");
