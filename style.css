@@ -25,6 +25,7 @@ html, body {
   background: var(--black);
   color: var(--white);
   font-family: 'Helvetica Neue', Arial, sans-serif;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, .display-font {
@@ -65,9 +66,7 @@ h1, h2, h3, .display-font {
   flex-wrap: wrap;
 }
 
-.stats-bar .stat {
-  text-align: center;
-}
+.stats-bar .stat { text-align: center; }
 
 .stats-bar .stat-num {
   font-family: 'Anton', sans-serif;
@@ -152,10 +151,7 @@ h1, h2, h3, .display-font {
   height: fit-content;
 }
 
-.btn-clear:hover {
-  border-color: var(--red);
-  color: var(--white);
-}
+.btn-clear:hover { border-color: var(--red); color: var(--white); }
 
 .results-count {
   padding: 14px 20px 0;
@@ -166,185 +162,62 @@ h1, h2, h3, .display-font {
   letter-spacing: 0.06em;
 }
 
-/* ---------- Kit grid & ticket-stub card ---------- */
+.no-results { padding: 60px 20px; text-align: center; color: var(--grey); }
 
-.kit-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 22px;
-  padding: 18px 20px 60px;
+/* ---------- Season section ---------- */
+
+#seasonsContainer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
 }
 
-.kit-card {
-  position: relative;
+.season-section {
   background: var(--black-2);
-  border-radius: 10px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   border: 1px solid var(--grey-line);
-  --notch: 14px;
+  border-radius: 14px;
+  padding: 22px 20px 26px;
+  scroll-margin-top: 180px;
 }
 
-.kit-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(218, 2, 14, 0.25);
-  border-color: var(--red);
-}
-
-.kit-card.owned {
-  border-color: var(--red);
-}
-
-.kit-card-photo {
-  position: relative;
-  aspect-ratio: 4 / 5;
-  background: var(--black-3);
-  overflow: hidden;
-}
-
-.kit-card-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.owned-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: var(--red);
-  color: var(--white);
-  font-family: 'Anton', sans-serif;
-  font-size: 0.65rem;
-  letter-spacing: 0.06em;
-  padding: 4px 8px;
-  border-radius: 3px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  text-transform: uppercase;
-}
-
-.kit-type-tag {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background: rgba(0,0,0,0.7);
-  color: var(--white);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 7px;
-  border-radius: 3px;
-}
-
-/* perforation / ticket-stub divider */
-.kit-card-perf {
-  position: relative;
-  height: 0;
-  border-top: 2px dashed var(--grey-line);
-  margin: 0 0;
-}
-
-.kit-card-perf::before,
-.kit-card-perf::after {
-  content: "";
-  position: absolute;
-  width: var(--notch);
-  height: var(--notch);
-  background: var(--black);
-  border-radius: 50%;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.kit-card-perf::before { left: calc(var(--notch) / -2); }
-.kit-card-perf::after { right: calc(var(--notch) / -2); }
-
-.kit-card-info {
-  padding: 12px 14px 16px;
-}
-
-.kit-card-season {
-  font-family: 'Anton', sans-serif;
-  font-size: 1.2rem;
-  color: var(--white);
-  margin: 0 0 2px;
-}
-
-.kit-card-meta {
-  font-size: 0.75rem;
-  color: var(--grey);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.kit-card-meta .sponsor {
-  color: var(--red);
-}
-
-/* ---------- Modal ---------- */
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.82);
-  display: none;
+.season-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: flex-start;
-  justify-content: center;
-  padding: 30px 16px;
-  overflow-y: auto;
-  z-index: 100;
-}
-
-.modal-backdrop.open { display: flex; }
-
-.modal {
-  background: var(--black-2);
-  border: 1px solid var(--red);
-  border-radius: 12px;
-  max-width: 900px;
-  width: 100%;
-  position: relative;
-  padding: 30px 28px 34px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-}
-
-.modal-close {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  background: transparent;
-  border: none;
-  color: var(--grey);
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.modal-close:hover { color: var(--red); }
-
-.modal-header {
+  gap: 14px;
   border-bottom: 2px solid var(--red);
-  padding-bottom: 14px;
-  margin-bottom: 20px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
 }
 
-.modal-season-label {
-  font-size: clamp(1.8rem, 5vw, 2.6rem);
+.season-title {
   margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
 }
 
-.modal-manager {
-  color: var(--grey);
+.season-manager {
   margin: 4px 0 0;
-  font-size: 0.9rem;
+  color: var(--grey);
+  font-size: 0.85rem;
 }
 
-.modal-trophies {
+.season-notes {
+  font-style: italic;
+  color: var(--grey);
+  font-size: 0.8rem;
+  margin: 6px 0 0;
+}
+
+.season-trophies {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
+  justify-content: flex-end;
+  max-width: 320px;
 }
 
 .trophy-pill {
@@ -355,67 +228,213 @@ h1, h2, h3, .display-font {
   letter-spacing: 0.05em;
   padding: 4px 9px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 
-.modal-notes {
-  font-style: italic;
+.trophy-pill.trophy-none {
+  background: transparent;
+  border: 1px solid var(--grey-line);
   color: var(--grey);
+}
+
+.panel-label {
   font-size: 0.85rem;
-  margin-top: 8px;
-}
-
-.modal-section-title {
-  font-size: 1rem;
   color: var(--white);
-  margin: 26px 0 12px;
+  margin: 0 0 10px;
   border-left: 4px solid var(--red);
-  padding-left: 10px;
+  padding-left: 9px;
 }
 
-.modal-kits-row {
+.season-body {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-bottom: 22px;
 }
 
-.modal-kit-card {
-  background: var(--black-3);
+@media (min-width: 760px) {
+  .season-body { grid-template-columns: 260px 1fr; }
+}
+
+/* ---------- Team photo ---------- */
+
+.team-photo-box {
+  position: relative;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--grey-line);
+  border: 1px dashed var(--grey-line);
+  background: var(--black-3);
+  aspect-ratio: 4 / 3;
 }
 
-.modal-kit-card.owned { border-color: var(--red); }
+.team-photo-box.has-photo { border-style: solid; }
 
-.modal-kit-card img {
+.team-photo-img {
   width: 100%;
-  aspect-ratio: 4/5;
+  height: 100%;
   object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.team-photo-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
+}
+
+.btn-mini {
+  flex: 1;
+  text-align: center;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--grey-line);
+  color: var(--white);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-mini:hover { border-color: var(--red); }
+
+.upload-prompt {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--grey);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-align: center;
+  padding: 10px;
+}
+
+.upload-prompt:hover { color: var(--white); }
+
+.upload-icon {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.8rem;
+  color: var(--red);
+  line-height: 1;
+}
+
+/* ---------- Kits row (aligned home/away/third) ---------- */
+
+.kits-row {
+  display: flex;
+  gap: 12px;
+}
+
+.kit-thumb {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--black-3);
+  border: 1px solid var(--grey-line);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.kit-thumb.owned { border-color: var(--red); }
+
+.kit-thumb-photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  background: #1a1a1a;
+  cursor: zoom-in;
+}
+
+.kit-thumb-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
 }
 
-.modal-kit-card-body {
-  padding: 8px 10px 10px;
+.kit-type-tag {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(0,0,0,0.75);
+  color: var(--white);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 5px;
+  border-radius: 3px;
 }
 
-.modal-kit-card-body .type-label {
-  font-size: 0.7rem;
+.owned-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: var(--red);
+  color: var(--white);
+  font-family: 'Anton', sans-serif;
+  font-size: 0.5rem;
+  letter-spacing: 0.05em;
+  padding: 3px 5px;
+  border-radius: 3px;
   text-transform: uppercase;
+}
+
+.custom-badge {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  background: rgba(20,20,20,0.85);
+  border: 1px solid var(--grey-line);
+  color: var(--white);
+  font-size: 0.5rem;
+  letter-spacing: 0.05em;
+  padding: 3px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.kit-thumb-meta {
+  font-size: 0.65rem;
   color: var(--grey);
-  letter-spacing: 0.06em;
+  margin: 6px 8px 2px;
+  line-height: 1.3;
+}
+
+.kit-thumb-meta .sponsor { color: var(--red); }
+
+.kit-thumb-imgactions {
+  display: flex;
+  gap: 4px;
+  margin: 6px 8px 0;
+}
+
+.kit-thumb-imgactions .btn-mini {
+  font-size: 0.55rem;
+  padding: 5px 2px;
 }
 
 .owned-toggle {
-  margin-top: 8px;
-  width: 100%;
-  padding: 7px 0;
+  margin: 6px 8px 8px;
+  padding: 6px 0;
   border-radius: 4px;
   border: 1px solid var(--grey-line);
   background: transparent;
   color: var(--grey);
-  font-size: 0.72rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   cursor: pointer;
 }
 
@@ -425,7 +444,9 @@ h1, h2, h3, .display-font {
   color: var(--white);
 }
 
-/* ---------- Formation pitch ---------- */
+/* ---------- Squad / formation ---------- */
+
+.season-squad { margin-top: 6px; }
 
 .pitch-wrap {
   background: linear-gradient(180deg, #0e3d17, #0a2c11);
@@ -434,15 +455,14 @@ h1, h2, h3, .display-font {
   position: relative;
   aspect-ratio: 3 / 4;
   max-width: 420px;
-  margin: 0 auto;
+  margin: 0 auto 24px;
   overflow: hidden;
 }
 
 .pitch-wrap::before {
   content: "";
   position: absolute;
-  top: 50%; left: 6%;
-  right: 6%;
+  top: 50%; left: 6%; right: 6%;
   height: 2px;
   background: rgba(255,255,255,0.25);
 }
@@ -493,8 +513,6 @@ h1, h2, h3, .display-font {
   text-overflow: ellipsis;
 }
 
-/* ---------- Squad list ---------- */
-
 .squad-columns {
   display: grid;
   grid-template-columns: 1fr;
@@ -505,11 +523,7 @@ h1, h2, h3, .display-font {
   .squad-columns { grid-template-columns: 1fr 1fr; }
 }
 
-.squad-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+.squad-list { list-style: none; margin: 0; padding: 0; }
 
 .squad-list li {
   display: flex;
@@ -520,6 +534,13 @@ h1, h2, h3, .display-font {
   font-size: 0.85rem;
 }
 
+.squad-list li.empty-row {
+  color: var(--grey);
+  font-size: 0.8rem;
+  font-style: italic;
+  justify-content: flex-start;
+}
+
 .squad-list .num {
   color: var(--red);
   font-family: 'Anton', sans-serif;
@@ -527,10 +548,7 @@ h1, h2, h3, .display-font {
   display: inline-block;
 }
 
-.squad-list .pos {
-  color: var(--grey);
-  font-size: 0.75rem;
-}
+.squad-list .pos { color: var(--grey); font-size: 0.75rem; }
 
 .squad-subheading {
   font-size: 0.72rem;
@@ -540,11 +558,50 @@ h1, h2, h3, .display-font {
   margin: 0 0 8px;
 }
 
-.no-results {
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--grey);
+/* ---------- Lightbox ---------- */
+
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  z-index: 200;
 }
+
+.lightbox-backdrop.open { display: flex; }
+
+.lightbox-backdrop img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--grey-line);
+}
+
+.lightbox-caption {
+  color: var(--white);
+  margin-top: 12px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  background: transparent;
+  border: none;
+  color: var(--white);
+  font-size: 2.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover { color: var(--red); }
 
 /* ---------- Footer ---------- */
 
@@ -577,7 +634,4 @@ h1, h2, h3, .display-font {
 
 .btn-footer:hover { background: var(--red); }
 
-.footer-note {
-  color: var(--grey);
-  font-size: 0.75rem;
-}
+.footer-note { color: var(--grey); font-size: 0.75rem; }

@@ -20,56 +20,57 @@
   <div class="stats-bar" id="statsBar"></div>
 </header>
 
-<main>
-  <section class="filter-bar" id="filterBar">
-    <div class="filter-group">
-      <label for="searchInput">Search</label>
-      <input type="text" id="searchInput" placeholder="Season, player, sponsor...">
-    </div>
-    <div class="filter-group">
-      <label for="brandFilter">Brand</label>
-      <select id="brandFilter"><option value="">All</option></select>
-    </div>
-    <div class="filter-group">
-      <label for="sponsorFilter">Sponsor</label>
-      <select id="sponsorFilter"><option value="">All</option></select>
-    </div>
-    <div class="filter-group">
-      <label for="managerFilter">Manager</label>
-      <select id="managerFilter"><option value="">All</option></select>
-    </div>
-    <div class="filter-group">
-      <label for="trophyFilter">Trophy</label>
-      <select id="trophyFilter"><option value="">All</option></select>
-    </div>
-    <div class="filter-group">
-      <label for="kitTypeFilter">Type</label>
-      <select id="kitTypeFilter">
-        <option value="">All</option>
-        <option value="home">Home</option>
-        <option value="away">Away</option>
-        <option value="third">Third</option>
-      </select>
-    </div>
-    <div class="filter-group filter-toggle">
-      <label class="checkbox-label">
-        <input type="checkbox" id="ownedOnly">
-        <span>Owned only</span>
-      </label>
-    </div>
-    <button class="btn-clear" id="clearFilters">Clear</button>
-  </section>
-
-  <p class="results-count" id="resultsCount"></p>
-
-  <section class="kit-grid" id="kitGrid"></section>
-</main>
-
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" id="seasonModal">
-    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
-    <div id="modalContent"></div>
+<section class="filter-bar" id="filterBar">
+  <div class="filter-group">
+    <label for="searchInput">Search</label>
+    <input type="text" id="searchInput" placeholder="Season, player, sponsor...">
   </div>
+  <div class="filter-group">
+    <label for="brandFilter">Brand</label>
+    <select id="brandFilter"><option value="">All</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="sponsorFilter">Sponsor</label>
+    <select id="sponsorFilter"><option value="">All</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="managerFilter">Manager</label>
+    <select id="managerFilter"><option value="">All</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="trophyFilter">Trophy</label>
+    <select id="trophyFilter"><option value="">All</option></select>
+  </div>
+  <div class="filter-group">
+    <label for="kitTypeFilter">Type</label>
+    <select id="kitTypeFilter">
+      <option value="">All</option>
+      <option value="home">Home</option>
+      <option value="away">Away</option>
+      <option value="third">Third</option>
+    </select>
+  </div>
+  <div class="filter-group filter-toggle">
+    <label class="checkbox-label">
+      <input type="checkbox" id="ownedOnly">
+      <span>Owned only</span>
+    </label>
+  </div>
+  <div class="filter-group">
+    <label for="jumpTo">Jump to season</label>
+    <select id="jumpTo"><option value="">Jump...</option></select>
+  </div>
+  <button class="btn-clear" id="clearFilters">Clear</button>
+</section>
+
+<p class="results-count" id="resultsCount"></p>
+
+<main id="seasonsContainer"></main>
+
+<div class="lightbox-backdrop" id="lightboxBackdrop">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <img id="lightboxImg" alt="">
+  <p class="lightbox-caption" id="lightboxCaption"></p>
 </div>
 
 <footer class="site-footer">
@@ -78,7 +79,7 @@
     <label class="btn-footer" for="importInput">Import collection</label>
     <input type="file" id="importInput" accept="application/json" hidden>
   </div>
-  <p class="footer-note">All data stored locally in this browser. Free forever. No account needed.</p>
+  <p class="footer-note">All data (including uploaded team photos) is stored locally in this browser. Free forever. No account needed.</p>
 </footer>
 
 <script src="data.js"></script>

@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  // ================= Collection ownership (localStorage) =================
+
   var STORAGE_KEY = "uniKitCollectionOverrides.v1";
 
   function loadOverrides() {
@@ -37,19 +39,92 @@
     return !current;
   }
 
-  // ---------- Flatten data ----------
+  // ================= Image storage (IndexedDB): team photos + kit image overrides =================
+
+  var DB_NAME = "uniKitDB";
+  var DB_VERSION = 2;
+  var TEAM_PHOTO_STORE = "teamPhotos";
+  var KIT_IMAGE_STORE = "kitImages";
+
+  var teamPhotoCache = {}; // startYear -> { blob, url }
+  var kitImageCache = {};  // "startYear_kitType" -> { blob, url }
+
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(TEAM_PHOTO_STORE)) db.createObjectStore(TEAM_PHOTO_STORE);
+        if (!db.objectStoreNames.contains(KIT_IMAGE_STORE)) db.createObjectStore(KIT_IMAGE_STORE);
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function idbPut(storeName, key, blob) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).put(blob, key);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function idbDelete(storeName, key) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).delete(key);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function loadAllFromStore(storeName) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(storeName, "readonly");
+        var store = tx.objectStore(storeName);
+        var keysReq = store.getAllKeys();
+        var valsReq = store.getAll();
+        tx.oncomplete = function () {
+          var map = {};
+          keysReq.result.forEach(function (k, i) {
+            var blob = valsReq.result[i];
+            map[k] = { blob: blob, url: URL.createObjectURL(blob) };
+          });
+          resolve(map);
+        };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function dataURLToBlob(dataURL) {
+    return fetch(dataURL).then(function (r) { return r.blob(); });
+  }
+
+  // ================= Data =================
 
   var flatKits = [];
   KIT_DATA.forEach(function (season) {
     season.kits.forEach(function (kit) {
-      flatKits.push({
-        season: season,
-        kit: kit
-      });
+      flatKits.push({ season: season, kit: kit });
     });
   });
-
-  // ---------- Populate filters ----------
 
   var brandSet = new Set();
   var sponsorSet = new Set();
@@ -80,7 +155,21 @@
   fillSelect("managerFilter", managerSet);
   fillSelect("trophyFilter", trophySet);
 
-  // ---------- Stats bar ----------
+  var jumpTo = document.getElementById("jumpTo");
+  KIT_DATA.forEach(function (season) {
+    var opt = document.createElement("option");
+    opt.value = season.startYear;
+    opt.textContent = season.label;
+    jumpTo.appendChild(opt);
+  });
+  jumpTo.addEventListener("change", function () {
+    if (!jumpTo.value) return;
+    var el = document.getElementById("season-" + jumpTo.value);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    jumpTo.value = "";
+  });
+
+  // ================= Stats =================
 
   function renderStats() {
     var totalKits = flatKits.length;
@@ -102,7 +191,7 @@
     });
   }
 
-  // ---------- Filtering ----------
+  // ================= Filtering (season-level) =================
 
   var els = {
     search: document.getElementById("searchInput"),
@@ -115,25 +204,25 @@
     clear: document.getElementById("clearFilters")
   };
 
-  function matchesFilters(fk) {
-    var season = fk.season, kit = fk.kit;
-
-    if (els.brand.value && kit.brand !== els.brand.value) return false;
-    if (els.sponsor.value && kit.sponsor !== els.sponsor.value) return false;
+  function seasonMatches(season) {
+    if (els.brand.value && !season.kits.some(function (k) { return k.brand === els.brand.value; })) return false;
+    if (els.sponsor.value && !season.kits.some(function (k) { return k.sponsor === els.sponsor.value; })) return false;
     if (els.manager.value && season.manager !== els.manager.value) return false;
     if (els.trophy.value && (season.trophies || []).indexOf(els.trophy.value) === -1) return false;
-    if (els.kitType.value && kit.kitType !== els.kitType.value) return false;
-    if (els.ownedOnly.checked && !isOwned(kit, season.startYear)) return false;
+    if (els.kitType.value && !season.kits.some(function (k) { return k.kitType === els.kitType.value; })) return false;
+
+    if (els.ownedOnly.checked) {
+      var relevantKits = els.kitType.value
+        ? season.kits.filter(function (k) { return k.kitType === els.kitType.value; })
+        : season.kits;
+      if (!relevantKits.some(function (k) { return isOwned(k, season.startYear); })) return false;
+    }
 
     var q = els.search.value.trim().toLowerCase();
     if (q) {
-      var haystack = [
-        season.label,
-        season.manager,
-        kit.brand,
-        kit.sponsor,
-        kit.kitType
-      ].join(" ").toLowerCase();
+      var haystack = [season.label, season.manager]
+        .concat(season.kits.map(function (k) { return k.brand + " " + k.sponsor + " " + k.kitType; }))
+        .join(" ").toLowerCase();
       var playerMatch = (season.squad || []).some(function (p) {
         return p.name.toLowerCase().indexOf(q) !== -1;
       });
@@ -144,65 +233,10 @@
   }
 
   function currentFiltered() {
-    return flatKits.filter(matchesFilters);
+    return KIT_DATA.filter(seasonMatches);
   }
 
-  // ---------- Render grid ----------
-
-  var grid = document.getElementById("kitGrid");
-  var resultsCount = document.getElementById("resultsCount");
-
-  function kitCardHTML(fk) {
-    var season = fk.season, kit = fk.kit;
-    var owned = isOwned(kit, season.startYear);
-    return (
-      '<article class="kit-card' + (owned ? ' owned' : '') + '" data-start-year="' + season.startYear + '">' +
-        '<div class="kit-card-photo">' +
-          '<img src="' + kit.image + '" alt="' + season.label + ' ' + kit.kitType + ' kit" loading="lazy">' +
-          '<span class="kit-type-tag">' + kit.kitType + '</span>' +
-          (owned ? '<span class="owned-badge">Owned</span>' : '') +
-        '</div>' +
-        '<div class="kit-card-perf"></div>' +
-        '<div class="kit-card-info">' +
-          '<p class="kit-card-season">' + season.label + '</p>' +
-          '<p class="kit-card-meta">' + kit.brand + ' &middot; <span class="sponsor">' + (kit.sponsor || "No sponsor") + '</span></p>' +
-        '</div>' +
-      '</article>'
-    );
-  }
-
-  function renderGrid() {
-    var filtered = currentFiltered();
-    resultsCount.textContent = filtered.length + " kit" + (filtered.length === 1 ? "" : "s") + " shown";
-    if (filtered.length === 0) {
-      grid.innerHTML = '<p class="no-results">No kits match those filters.</p>';
-      return;
-    }
-    grid.innerHTML = filtered.map(kitCardHTML).join("");
-    Array.from(grid.querySelectorAll(".kit-card")).forEach(function (card) {
-      card.addEventListener("click", function () {
-        openSeasonModal(parseInt(card.getAttribute("data-start-year"), 10));
-      });
-    });
-  }
-
-  [els.search, els.brand, els.sponsor, els.manager, els.trophy, els.kitType, els.ownedOnly].forEach(function (el) {
-    el.addEventListener("input", renderGrid);
-    el.addEventListener("change", renderGrid);
-  });
-
-  els.clear.addEventListener("click", function () {
-    els.search.value = "";
-    els.brand.value = "";
-    els.sponsor.value = "";
-    els.manager.value = "";
-    els.trophy.value = "";
-    els.kitType.value = "";
-    els.ownedOnly.checked = false;
-    renderGrid();
-  });
-
-  // ---------- Formation pitch ----------
+  // ================= Formation pitch =================
 
   function buildFormationLayout(season) {
     var starters = (season.squad || []).filter(function (p) { return p.isStartingXI; });
@@ -216,9 +250,7 @@
     }
 
     var byCat = { GK: [], DEF: [], MID: [], FWD: [] };
-    starters.forEach(function (p) {
-      byCat[cat(p.position)].push(p);
-    });
+    starters.forEach(function (p) { byCat[cat(p.position)].push(p); });
     ["GK", "DEF", "MID", "FWD"].forEach(function (c) {
       byCat[c].sort(function (a, b) {
         var an = a.shirtNumber == null ? 999 : a.shirtNumber;
@@ -230,7 +262,7 @@
     var rowsSpec = (season.formation || "4-4-2").split("-").map(function (n) { return parseInt(n, 10); }).filter(function (n) { return !isNaN(n); });
     if (rowsSpec.length === 0) rowsSpec = [4, 4, 2];
 
-    var midRowCount = rowsSpec.length - 2; // rows between DEF (first) and FWD (last)
+    var midRowCount = rowsSpec.length - 2;
     var midPool = byCat.MID.slice();
     var midRows = [];
     if (midRowCount <= 1) {
@@ -243,18 +275,12 @@
     }
 
     var rows = [byCat.DEF].concat(midRows).concat([byCat.FWD]);
-    // total rows including GK
-    var totalLines = rows.length + 1;
     var layout = [];
-
-    // GK row at bottom
     layout.push({ y: 90, players: byCat.GK.slice(0, 1) });
-
     rows.forEach(function (rowPlayers, idx) {
       var y = 90 - ((idx + 1) * (78 / rows.length));
       layout.push({ y: Math.max(y, 8), players: rowPlayers });
     });
-
     return layout;
   }
 
@@ -269,7 +295,7 @@
         var num = p.shirtNumber != null ? p.shirtNumber : "-";
         html += '<div class="pitch-player" style="top:' + row.y + '%; left:' + x + '%;">' +
                   '<div class="pitch-jersey">' + num + '</div>' +
-                  '<div class="pitch-player-name">' + p.name + '</div>' +
+                  '<div class="pitch-player-name">' + escapeHTML(p.name) + '</div>' +
                 '</div>';
       });
     });
@@ -277,15 +303,14 @@
     return html;
   }
 
-  // ---------- Squad list ----------
-
   function squadListHTML(season) {
     var starters = (season.squad || []).filter(function (p) { return p.isStartingXI; });
     var bench = (season.squad || []).filter(function (p) { return !p.isStartingXI; });
 
     function listItems(players) {
+      if (players.length === 0) return '<li class="empty-row">None recorded</li>';
       return players.map(function (p) {
-        return '<li><span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + p.name + '</span><span class="pos">' + p.position + '</span></li>';
+        return '<li><span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + escapeHTML(p.name) + '</span><span class="pos">' + escapeHTML(p.position || "") + '</span></li>';
       }).join("");
     }
 
@@ -303,90 +328,285 @@
     );
   }
 
-  // ---------- Modal ----------
+  function escapeHTML(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
 
-  var backdrop = document.getElementById("modalBackdrop");
-  var modalContent = document.getElementById("modalContent");
-  var modalClose = document.getElementById("modalClose");
+  // ================= Kit thumbnails row =================
 
-  function openSeasonModal(startYear) {
-    var season = KIT_DATA.find(function (s) { return s.startYear === startYear; });
-    if (!season) return;
+  var KIT_TYPE_ORDER = { home: 0, away: 1, third: 2 };
+  function kitTypeOrder(t) {
+    return Object.prototype.hasOwnProperty.call(KIT_TYPE_ORDER, t) ? KIT_TYPE_ORDER[t] : 9;
+  }
 
-    var trophiesHTML = (season.trophies && season.trophies.length)
-      ? '<div class="modal-trophies">' + season.trophies.map(function (t) { return '<span class="trophy-pill">' + t + '</span>'; }).join("") + '</div>'
-      : '';
+  function kitThumbHTML(season, kit) {
+    var owned = isOwned(kit, season.startYear);
+    var key = kitKey(season.startYear, kit.kitType);
+    var override = kitImageCache[key];
+    var displaySrc = override ? override.url : kit.image;
 
-    var kitsHTML = '<div class="modal-kits-row">' + season.kits.map(function (kit) {
-      var owned = isOwned(kit, season.startYear);
+    return (
+      '<div class="kit-thumb' + (owned ? ' owned' : '') + '">' +
+        '<div class="kit-thumb-photo" data-lightbox="1" data-src="' + displaySrc + '" data-caption="' + escapeHTML(season.label) + ' &middot; ' + escapeHTML(kit.kitType) + '">' +
+          '<img src="' + displaySrc + '" alt="' + escapeHTML(season.label) + ' ' + kit.kitType + ' kit" loading="lazy">' +
+          '<span class="kit-type-tag">' + kit.kitType + '</span>' +
+          (owned ? '<span class="owned-badge">Owned</span>' : '') +
+          (override ? '<span class="custom-badge">Custom</span>' : '') +
+        '</div>' +
+        '<p class="kit-thumb-meta">' + escapeHTML(kit.brand) + '<br><span class="sponsor">' + escapeHTML(kit.sponsor || "No sponsor") + '</span></p>' +
+        '<div class="kit-thumb-imgactions">' +
+          '<label class="btn-mini">Replace<input type="file" accept="image/*" class="kit-image-input" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '" hidden></label>' +
+          (override ? '<button class="btn-mini btn-remove-kit-image" data-start-year="' + season.startYear + '" data-kit-type="' + kit.kitType + '">Reset</button>' : '') +
+        '</div>' +
+        '<button class="owned-toggle' + (owned ? ' is-owned' : '') + '" data-kit-type="' + kit.kitType + '" data-start-year="' + season.startYear + '">' +
+          (owned ? "In collection" : "Mark as owned") +
+        '</button>' +
+      '</div>'
+    );
+  }
+
+  // ================= Team photo block =================
+
+  function teamPhotoHTML(season) {
+    var entry = teamPhotoCache[season.startYear];
+    if (entry) {
       return (
-        '<div class="modal-kit-card' + (owned ? ' owned' : '') + '">' +
-          '<img src="' + kit.image + '" alt="' + season.label + ' ' + kit.kitType + '">' +
-          '<div class="modal-kit-card-body">' +
-            '<div class="type-label">' + kit.kitType + ' &middot; ' + kit.brand + '</div>' +
-            '<button class="owned-toggle' + (owned ? ' is-owned' : '') + '" data-kit-type="' + kit.kitType + '" data-start-year="' + season.startYear + '">' +
-              (owned ? "In collection" : "Mark as owned") +
-            '</button>' +
+        '<div class="team-photo-box has-photo" data-start-year="' + season.startYear + '">' +
+          '<img src="' + entry.url + '" alt="' + escapeHTML(season.label) + ' team photo" class="team-photo-img" data-lightbox="1" data-src="' + entry.url + '" data-caption="' + escapeHTML(season.label) + ' team photo">' +
+          '<div class="team-photo-actions">' +
+            '<label class="btn-mini">Replace<input type="file" accept="image/*" class="team-photo-input" data-start-year="' + season.startYear + '" hidden></label>' +
+            '<button class="btn-mini btn-remove-photo" data-start-year="' + season.startYear + '">Remove</button>' +
           '</div>' +
         '</div>'
       );
-    }).join("") + '</div>';
+    }
+    return (
+      '<div class="team-photo-box empty" data-start-year="' + season.startYear + '">' +
+        '<label class="upload-prompt">' +
+          '<span class="upload-icon">+</span>' +
+          '<span>Add team photo</span>' +
+          '<input type="file" accept="image/*" class="team-photo-input" data-start-year="' + season.startYear + '" hidden>' +
+        '</label>' +
+      '</div>'
+    );
+  }
 
-    modalContent.innerHTML =
-      '<div class="modal-header">' +
-        '<h2 class="modal-season-label">' + season.label + '</h2>' +
-        '<p class="modal-manager">Manager: ' + (season.manager || "Unknown") + ' &middot; Formation: ' + (season.formation || "-") + '</p>' +
-        trophiesHTML +
-        (season.notes ? '<p class="modal-notes">' + season.notes + '</p>' : '') +
-      '</div>' +
-      '<h3 class="modal-section-title">Kits</h3>' +
-      kitsHTML +
-      '<h3 class="modal-section-title">Starting XI</h3>' +
-      pitchHTML(season) +
-      '<h3 class="modal-section-title">Full Squad</h3>' +
-      squadListHTML(season);
+  // ================= Season section =================
 
-    Array.from(modalContent.querySelectorAll(".owned-toggle")).forEach(function (btn) {
+  function seasonSectionHTML(season) {
+    var trophiesHTML = (season.trophies && season.trophies.length)
+      ? '<div class="season-trophies">' + season.trophies.map(function (t) { return '<span class="trophy-pill">' + escapeHTML(t) + '</span>'; }).join("") + '</div>'
+      : '<div class="season-trophies"><span class="trophy-pill trophy-none">No trophies</span></div>';
+
+    var kits = season.kits.slice().sort(function (a, b) { return kitTypeOrder(a.kitType) - kitTypeOrder(b.kitType); });
+    var kitsHTML = '<div class="kits-row">' + kits.map(function (k) { return kitThumbHTML(season, k); }).join("") + '</div>';
+
+    return (
+      '<section class="season-section" id="season-' + season.startYear + '" data-start-year="' + season.startYear + '">' +
+        '<div class="season-head">' +
+          '<div class="season-head-main">' +
+            '<h2 class="season-title">' + escapeHTML(season.label) + '</h2>' +
+            '<p class="season-manager">Manager: ' + escapeHTML(season.manager || "Unknown") + ' &middot; Formation: ' + escapeHTML(season.formation || "-") + '</p>' +
+            (season.notes ? '<p class="season-notes">' + escapeHTML(season.notes) + '</p>' : '') +
+          '</div>' +
+          trophiesHTML +
+        '</div>' +
+
+        '<div class="season-body">' +
+          '<div class="team-photo-panel">' +
+            '<h3 class="panel-label">Team Photo</h3>' +
+            teamPhotoHTML(season) +
+          '</div>' +
+          '<div class="kits-panel">' +
+            '<h3 class="panel-label">Kits</h3>' +
+            kitsHTML +
+          '</div>' +
+        '</div>' +
+
+        '<div class="season-squad">' +
+          '<h3 class="panel-label">Starting XI</h3>' +
+          pitchHTML(season) +
+          '<h3 class="panel-label">Full Squad</h3>' +
+          squadListHTML(season) +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  // ================= Render =================
+
+  var container = document.getElementById("seasonsContainer");
+  var resultsCount = document.getElementById("resultsCount");
+
+  function render() {
+    var filtered = currentFiltered();
+    resultsCount.textContent = filtered.length + " season" + (filtered.length === 1 ? "" : "s") + " shown";
+    if (filtered.length === 0) {
+      container.innerHTML = '<p class="no-results">No seasons match those filters.</p>';
+      return;
+    }
+    container.innerHTML = filtered.map(seasonSectionHTML).join("");
+    wireSection(container);
+  }
+
+  function findSectionEl(startYear) {
+    return container.querySelector("#season-" + startYear);
+  }
+
+  function refreshSection(startYear) {
+    var season = KIT_DATA.find(function (s) { return s.startYear === startYear; });
+    var oldEl = findSectionEl(startYear);
+    if (!season || !oldEl) return;
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = seasonSectionHTML(season);
+    var newEl = wrapper.firstElementChild;
+    oldEl.replaceWith(newEl);
+    wireSection(newEl);
+  }
+
+  function wireSection(root) {
+    Array.from(root.querySelectorAll(".owned-toggle")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var kitType = btn.getAttribute("data-kit-type");
         var sy = parseInt(btn.getAttribute("data-start-year"), 10);
+        var season = KIT_DATA.find(function (s) { return s.startYear === sy; });
         var kit = season.kits.find(function (k) { return k.kitType === kitType; });
-        var nowOwned = toggleOwned(kit, sy);
-        btn.classList.toggle("is-owned", nowOwned);
-        btn.textContent = nowOwned ? "In collection" : "Mark as owned";
-        btn.closest(".modal-kit-card").classList.toggle("owned", nowOwned);
-        renderGrid();
+        toggleOwned(kit, sy);
+        refreshSection(sy);
         renderStats();
       });
     });
 
-    backdrop.classList.add("open");
+    Array.from(root.querySelectorAll(".team-photo-input")).forEach(function (input) {
+      input.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var startYear = parseInt(input.getAttribute("data-start-year"), 10);
+        idbPut(TEAM_PHOTO_STORE, startYear, file).then(function () {
+          if (teamPhotoCache[startYear]) URL.revokeObjectURL(teamPhotoCache[startYear].url);
+          teamPhotoCache[startYear] = { blob: file, url: URL.createObjectURL(file) };
+          refreshSection(startYear);
+        });
+      });
+    });
+
+    Array.from(root.querySelectorAll(".btn-remove-photo")).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var startYear = parseInt(btn.getAttribute("data-start-year"), 10);
+        idbDelete(TEAM_PHOTO_STORE, startYear).then(function () {
+          if (teamPhotoCache[startYear]) URL.revokeObjectURL(teamPhotoCache[startYear].url);
+          delete teamPhotoCache[startYear];
+          refreshSection(startYear);
+        });
+      });
+    });
+
+    Array.from(root.querySelectorAll(".kit-image-input")).forEach(function (input) {
+      input.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var startYear = parseInt(input.getAttribute("data-start-year"), 10);
+        var kitType = input.getAttribute("data-kit-type");
+        var key = kitKey(startYear, kitType);
+        idbPut(KIT_IMAGE_STORE, key, file).then(function () {
+          if (kitImageCache[key]) URL.revokeObjectURL(kitImageCache[key].url);
+          kitImageCache[key] = { blob: file, url: URL.createObjectURL(file) };
+          refreshSection(startYear);
+        });
+      });
+    });
+
+    Array.from(root.querySelectorAll(".btn-remove-kit-image")).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var startYear = parseInt(btn.getAttribute("data-start-year"), 10);
+        var kitType = btn.getAttribute("data-kit-type");
+        var key = kitKey(startYear, kitType);
+        idbDelete(KIT_IMAGE_STORE, key).then(function () {
+          if (kitImageCache[key]) URL.revokeObjectURL(kitImageCache[key].url);
+          delete kitImageCache[key];
+          refreshSection(startYear);
+        });
+      });
+    });
+
+    Array.from(root.querySelectorAll('[data-lightbox="1"]')).forEach(function (el) {
+      el.addEventListener("click", function () {
+        openLightbox(el.getAttribute("data-src"), el.getAttribute("data-caption"));
+      });
+    });
   }
 
-  function closeModal() {
-    backdrop.classList.remove("open");
-  }
+  [els.search, els.brand, els.sponsor, els.manager, els.trophy, els.kitType, els.ownedOnly].forEach(function (el) {
+    el.addEventListener("input", render);
+    el.addEventListener("change", render);
+  });
 
-  modalClose.addEventListener("click", closeModal);
-  backdrop.addEventListener("click", function (e) {
-    if (e.target === backdrop) closeModal();
+  els.clear.addEventListener("click", function () {
+    els.search.value = "";
+    els.brand.value = "";
+    els.sponsor.value = "";
+    els.manager.value = "";
+    els.trophy.value = "";
+    els.kitType.value = "";
+    els.ownedOnly.checked = false;
+    render();
+  });
+
+  // ================= Lightbox =================
+
+  var lightboxBackdrop = document.getElementById("lightboxBackdrop");
+  var lightboxImg = document.getElementById("lightboxImg");
+  var lightboxCaption = document.getElementById("lightboxCaption");
+
+  function openLightbox(src, caption) {
+    lightboxImg.src = src;
+    lightboxCaption.textContent = caption || "";
+    lightboxBackdrop.classList.add("open");
+  }
+  function closeLightbox() {
+    lightboxBackdrop.classList.remove("open");
+    lightboxImg.src = "";
+  }
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+  lightboxBackdrop.addEventListener("click", function (e) {
+    if (e.target === lightboxBackdrop) closeLightbox();
   });
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape") closeLightbox();
   });
 
-  // ---------- Export / Import ----------
+  // ================= Export / Import =================
 
   document.getElementById("exportBtn").addEventListener("click", function () {
-    var blob = new Blob([JSON.stringify(overrides, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "my-uni-kit-collection-" + new Date().toISOString().slice(0, 10) + ".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    var photoKeys = Object.keys(teamPhotoCache);
+    var kitImageKeys = Object.keys(kitImageCache);
+
+    Promise.all([
+      Promise.all(photoKeys.map(function (sy) {
+        return blobToDataURL(teamPhotoCache[sy].blob).then(function (dataURL) { return [sy, dataURL]; });
+      })),
+      Promise.all(kitImageKeys.map(function (k) {
+        return blobToDataURL(kitImageCache[k].blob).then(function (dataURL) { return [k, dataURL]; });
+      }))
+    ]).then(function (results) {
+      var teamPhotos = {};
+      results[0].forEach(function (p) { teamPhotos[p[0]] = p[1]; });
+      var kitImages = {};
+      results[1].forEach(function (p) { kitImages[p[0]] = p[1]; });
+
+      var payload = { collection: overrides, teamPhotos: teamPhotos, kitImages: kitImages };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "my-uni-kit-collection-" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
   });
 
   document.getElementById("importInput").addEventListener("change", function (e) {
@@ -396,11 +616,36 @@
     reader.onload = function () {
       try {
         var imported = JSON.parse(reader.result);
-        overrides = Object.assign({}, overrides, imported);
+        var importedCollection = imported.collection || imported; // back-compat with old export format
+        overrides = Object.assign({}, overrides, importedCollection);
         saveOverrides(overrides);
-        renderGrid();
-        renderStats();
-        alert("Collection imported.");
+
+        var importedPhotos = imported.teamPhotos || {};
+        var importedKitImages = imported.kitImages || {};
+
+        var photoPromises = Object.keys(importedPhotos).map(function (sy) {
+          return dataURLToBlob(importedPhotos[sy]).then(function (blob) {
+            return idbPut(TEAM_PHOTO_STORE, parseInt(sy, 10), blob).then(function () {
+              if (teamPhotoCache[sy]) URL.revokeObjectURL(teamPhotoCache[sy].url);
+              teamPhotoCache[sy] = { blob: blob, url: URL.createObjectURL(blob) };
+            });
+          });
+        });
+
+        var kitImagePromises = Object.keys(importedKitImages).map(function (key) {
+          return dataURLToBlob(importedKitImages[key]).then(function (blob) {
+            return idbPut(KIT_IMAGE_STORE, key, blob).then(function () {
+              if (kitImageCache[key]) URL.revokeObjectURL(kitImageCache[key].url);
+              kitImageCache[key] = { blob: blob, url: URL.createObjectURL(blob) };
+            });
+          });
+        });
+
+        Promise.all(photoPromises.concat(kitImagePromises)).then(function () {
+          render();
+          renderStats();
+          alert("Collection imported.");
+        });
       } catch (err) {
         alert("Could not read that file as a valid collection export.");
       }
@@ -409,10 +654,19 @@
     e.target.value = "";
   });
 
-  // ---------- Init ----------
+  // ================= Init =================
 
   renderStats();
-  renderGrid();
+  render();
+
+  Promise.all([
+    loadAllFromStore(TEAM_PHOTO_STORE),
+    loadAllFromStore(KIT_IMAGE_STORE)
+  ]).then(function (results) {
+    teamPhotoCache = results[0];
+    kitImageCache = results[1];
+    render();
+  });
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
