@@ -226,6 +226,29 @@ h1, h2, h3, .display-font {
   margin: 6px 0 0;
 }
 
+.season-value {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--white);
+}
+
+.season-value strong {
+  color: var(--red);
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.season-value-note {
+  color: var(--grey);
+  font-size: 0.72rem;
+}
+
+.season-value-na {
+  color: var(--grey);
+  font-style: italic;
+}
+
 .season-trophies {
   display: flex;
   flex-wrap: wrap;

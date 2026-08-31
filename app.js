@@ -365,13 +365,41 @@
     return html;
   }
 
+  // Market values are sourced from Transfermarkt, which has no data at all
+  // before the 2004/05 season -- pre-2004 seasons intentionally have no
+  // marketValueEUR on any player, not a data gap to fix.
+  var EARLIEST_VALUE_YEAR = 2004;
+
+  function formatValueEUR(eur) {
+    if (eur == null) return null;
+    if (eur >= 1000000) {
+      var m = eur / 1000000;
+      return "€" + (m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)) + "m";
+    }
+    return "€" + Math.round(eur / 1000) + "k";
+  }
+
   function statsLine(p) {
     if (!p.stats) return "";
     var parts = [p.stats.appearances + (p.stats.appearances === 1 ? " app" : " apps")];
     if (p.stats.goals != null) parts.push(p.stats.goals + (p.stats.goals === 1 ? " goal" : " goals"));
     if (p.stats.yellowCards) parts.push(p.stats.yellowCards + " YC");
     if (p.stats.redCards) parts.push(p.stats.redCards + " RC");
+    var value = formatValueEUR(p.marketValueEUR);
+    if (value) parts.push(value);
     return '<span class="player-stats">' + parts.join(" &middot; ") + '</span>';
+  }
+
+  function seasonValueHTML(season) {
+    if (season.startYear < EARLIEST_VALUE_YEAR) {
+      return '<p class="season-value season-value-na">Estimated squad value: not tracked before 2004/05</p>';
+    }
+    var valued = (season.squad || []).filter(function (p) { return p.marketValueEUR != null; });
+    if (valued.length === 0) {
+      return '<p class="season-value season-value-na">Estimated squad value: not available</p>';
+    }
+    var total = valued.reduce(function (sum, p) { return sum + p.marketValueEUR; }, 0);
+    return '<p class="season-value">Estimated squad value: <strong>' + formatValueEUR(total) + '</strong> <span class="season-value-note">(' + valued.length + ' of ' + (season.squad || []).length + ' players valued, per Transfermarkt)</span></p>';
   }
 
   function squadListHTML(season) {
@@ -500,6 +528,7 @@
           '<div class="season-head-main">' +
             '<h2 class="season-title">' + escapeHTML(season.label) + '</h2>' +
             '<p class="season-manager">Manager: ' + escapeHTML(season.manager || "Unknown") + ' &middot; Formation: ' + escapeHTML(season.formation || "-") + '</p>' +
+            seasonValueHTML(season) +
             (season.notes ? '<p class="season-notes">' + escapeHTML(season.notes) + '</p>' : '') +
           '</div>' +
           trophiesHTML +
