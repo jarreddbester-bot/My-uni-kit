@@ -595,9 +595,6 @@ h1, h2, h3, .display-font {
 .squad-list { list-style: none; margin: 0; padding: 0; }
 
 .squad-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
   padding: 7px 0;
   border-bottom: 1px solid var(--grey-line);
   font-size: 0.85rem;
@@ -607,7 +604,16 @@ h1, h2, h3, .display-font {
   color: var(--grey);
   font-size: 0.8rem;
   font-style: italic;
-  justify-content: flex-start;
+}
+
+.squad-row-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.squad-row-stats {
+  margin-top: 2px;
 }
 
 .squad-list .num {
@@ -617,7 +623,13 @@ h1, h2, h3, .display-font {
   display: inline-block;
 }
 
-.squad-list .pos { color: var(--grey); font-size: 0.75rem; }
+.squad-list .pos { color: var(--grey); font-size: 0.75rem; white-space: nowrap; }
+
+.player-stats {
+  color: var(--grey);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
 
 .squad-subheading {
   font-size: 0.72rem;

@@ -247,18 +247,21 @@
 
   // ================= Formation pitch =================
 
-  // The dataset has no per-player left/right formation slot (formationPosition
-  // is null for every squad row), so there's no ground truth for which side
-  // of the pitch someone lined up on. As a best-effort approximation, classic
-  // English squad numbers reliably imply a side for wide positions (2=RB,
-  // 3=LB, 7=RW, 11=LW); every other number is treated as central and falls
-  // back to shirt-number order. This is a heuristic, not a historical record:
-  // it improves the many seasons that roughly followed the convention (most
-  // of the 1990s-2000s) and is neutral (no worse than before) for modern
-  // squads with arbitrary numbering.
+  // formationPosition is null for every squad row, so there's no ground truth
+  // ordering to place players left-to-right within a row. Where bdfutbol.com
+  // enrichment data is present, positionDetail gives a real side for
+  // defenders (Left Back / Right Back) and that's used directly. Everything
+  // else (goalkeepers, center backs, midfielders, forwards) has no side
+  // information even in the enriched data -- bdfutbol's own position coding
+  // doesn't distinguish wide from central there -- so it falls back to the
+  // classic English squad-number convention (2=RB, 3=LB, 7=RW, 11=LW) as a
+  // heuristic. Neither source is a historical record of exact formation
+  // slots; this is the best approximation available from the two combined.
   var SIDE_HINT = { 2: 1, 3: -1, 7: 1, 11: -1 };
-  function sideHint(shirtNumber) {
-    return SIDE_HINT[shirtNumber] || 0;
+  function sideHint(p) {
+    if (p.positionDetail === "Left Back") return -1;
+    if (p.positionDetail === "Right Back") return 1;
+    return SIDE_HINT[p.shirtNumber] || 0;
   }
 
   function buildFormationLayout(season) {
@@ -276,7 +279,7 @@
     starters.forEach(function (p) { byCat[cat(p.position)].push(p); });
     ["GK", "DEF", "MID", "FWD"].forEach(function (c) {
       byCat[c].sort(function (a, b) {
-        var as = sideHint(a.shirtNumber), bs = sideHint(b.shirtNumber);
+        var as = sideHint(a), bs = sideHint(b);
         if (as !== bs) return as - bs;
         var an = a.shirtNumber == null ? 999 : a.shirtNumber;
         var bn = b.shirtNumber == null ? 999 : b.shirtNumber;
@@ -343,6 +346,15 @@
     return html;
   }
 
+  function statsLine(p) {
+    if (!p.stats) return "";
+    var parts = [p.stats.appearances + (p.stats.appearances === 1 ? " app" : " apps")];
+    if (p.stats.goals != null) parts.push(p.stats.goals + (p.stats.goals === 1 ? " goal" : " goals"));
+    if (p.stats.yellowCards) parts.push(p.stats.yellowCards + " YC");
+    if (p.stats.redCards) parts.push(p.stats.redCards + " RC");
+    return '<span class="player-stats">' + parts.join(" &middot; ") + '</span>';
+  }
+
   function squadListHTML(season) {
     var starters = (season.squad || []).filter(function (p) { return p.isStartingXI; });
     var bench = (season.squad || []).filter(function (p) { return !p.isStartingXI; });
@@ -350,7 +362,13 @@
     function listItems(players) {
       if (players.length === 0) return '<li class="empty-row">None recorded</li>';
       return players.map(function (p) {
-        return '<li><span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + escapeHTML(p.name) + '</span><span class="pos">' + escapeHTML(p.position || "") + '</span></li>';
+        return '<li>' +
+          '<div class="squad-row-top">' +
+            '<span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + escapeHTML(p.name) + '</span>' +
+            '<span class="pos">' + escapeHTML(p.positionDetail || p.position || "") + '</span>' +
+          '</div>' +
+          (p.stats ? '<div class="squad-row-stats">' + statsLine(p) + '</div>' : '') +
+        '</li>';
       }).join("");
     }
 
