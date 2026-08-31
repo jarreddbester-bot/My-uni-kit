@@ -631,6 +631,19 @@ h1, h2, h3, .display-font {
   letter-spacing: 0.02em;
 }
 
+.new-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--white);
+  border-radius: 20px;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--white);
+  vertical-align: middle;
+}
+
 .squad-subheading {
   font-size: 0.72rem;
   text-transform: uppercase;

@@ -135,6 +135,25 @@
     });
   });
 
+  // First season each player appears anywhere in the dataset (KIT_DATA is
+  // already ordered oldest-to-newest). Used to flag "new" signings -- this is
+  // a proxy, not a verified transfer record: it really means "first time this
+  // app has this player on the books", so anyone already at the club before
+  // the data begins in 1992/93 would incorrectly look new that year. The
+  // 1992/93 season itself is therefore excluded from the flag entirely.
+  var EARLIEST_SEASON_YEAR = KIT_DATA.length ? KIT_DATA[0].startYear : null;
+  var firstSeasonByPlayer = {};
+  KIT_DATA.forEach(function (season) {
+    (season.squad || []).forEach(function (p) {
+      if (!(p.name in firstSeasonByPlayer)) {
+        firstSeasonByPlayer[p.name] = season.startYear;
+      }
+    });
+  });
+  function isNewSignee(p, season) {
+    return season.startYear !== EARLIEST_SEASON_YEAR && firstSeasonByPlayer[p.name] === season.startYear;
+  }
+
   var brandSet = new Set();
   var sponsorSet = new Set();
   var managerSet = new Set();
@@ -362,9 +381,10 @@
     function listItems(players) {
       if (players.length === 0) return '<li class="empty-row">None recorded</li>';
       return players.map(function (p) {
+        var newTag = isNewSignee(p, season) ? '<span class="new-badge" title="First season this player appears in the app\'s records">New</span>' : '';
         return '<li>' +
           '<div class="squad-row-top">' +
-            '<span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + escapeHTML(p.name) + '</span>' +
+            '<span><span class="num">' + (p.shirtNumber != null ? p.shirtNumber : "&ndash;") + '</span>' + escapeHTML(p.name) + newTag + '</span>' +
             '<span class="pos">' + escapeHTML(p.positionDetail || p.position || "") + '</span>' +
           '</div>' +
           (p.stats ? '<div class="squad-row-stats">' + statsLine(p) + '</div>' : '') +
