@@ -432,15 +432,19 @@
   // ================= Team photo block =================
 
   function teamPhotoHTML(season) {
-    var entry = teamPhotoCache[season.startYear];
-    if (entry) {
+    var override = teamPhotoCache[season.startYear];
+    var src = override ? override.url : season.teamPhoto;
+
+    if (src) {
+      var caption = escapeHTML(season.label) + ' team photo';
       return (
         '<div class="team-photo-box has-photo" data-start-year="' + season.startYear + '">' +
-          '<img src="' + entry.url + '" alt="' + escapeHTML(season.label) + ' team photo" class="team-photo-img" data-lightbox="1" data-src="' + entry.url + '" data-caption="' + escapeHTML(season.label) + ' team photo">' +
+          '<img src="' + src + '" alt="' + caption + '" class="team-photo-img" data-lightbox="1" data-src="' + src + '" data-caption="' + caption + '">' +
+          (override ? '<span class="custom-badge">Custom</span>' : '') +
           (READONLY ? '' :
             '<div class="team-photo-actions">' +
               '<label class="btn-mini">Replace<input type="file" accept="image/*" class="team-photo-input" data-start-year="' + season.startYear + '" hidden></label>' +
-              '<button class="btn-mini btn-remove-photo" data-start-year="' + season.startYear + '">Remove</button>' +
+              (override ? '<button class="btn-mini btn-remove-photo" data-start-year="' + season.startYear + '">Reset</button>' : '') +
             '</div>'
           ) +
         '</div>'

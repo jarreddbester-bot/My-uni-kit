@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-kit-v6";
+const CACHE_NAME = "uni-kit-v7";
 const PRECACHE_FILES = [
   "./",
   "index.html",
@@ -114,7 +114,18 @@ const PRECACHE_FILES = [
   "images/kits/2025-26-third.jpg",
   "images/kits/2026-27-away.jpg",
   "images/kits/2026-27-home.jpg",
-  "images/kits/2026-27-third.jpg"
+  "images/kits/2026-27-third.jpg",
+  "images/team-photos/1992.jpg",
+  "images/team-photos/1993.jpg",
+  "images/team-photos/1994.jpg",
+  "images/team-photos/1995.jpg",
+  "images/team-photos/1996.jpg",
+  "images/team-photos/1998.jpg",
+  "images/team-photos/2001.jpg",
+  "images/team-photos/2003.jpg",
+  "images/team-photos/2006.jpg",
+  "images/team-photos/2009.jpg",
+  "images/team-photos/2013.jpg"
 ];
 
 self.addEventListener("install", function (event) {
