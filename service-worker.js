@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-kit-v5";
+const CACHE_NAME = "uni-kit-v6";
 const PRECACHE_FILES = [
   "./",
   "index.html",
